@@ -1,0 +1,17 @@
+# Core dependencies
+streamlit==1.29.0
+psycopg2-binary==2.9.9
+pandas==2.1.4
+plotly==5.18.0
+truedata-ws==4.1.0
+
+# Supporting libraries
+python-dotenv==1.0.0
+configparser==5.3.0
+numpy==1.26.0
+requests==2.31.0
+websocket-client==1.6.4
+
+# Development extras (optional)
+pytest==7.4.0
+black==23.9.1
