@@ -74,7 +74,6 @@ A real-time market dashboard that displays current prices and historical charts 
 
 The application uses a single table:
 ```sql
--- Table: public.truedata_realtime
 
 -- DROP TABLE IF EXISTS public.truedata_realtime;
 
@@ -126,7 +125,7 @@ The dashboard currently tracks the following instruments:
 
 ## Requirements
 
-- Python 3.7+
+- Python 3.11+
 - PostgreSQL 12+
 - TrueData WebSocket API credentials
 - Libraries listed in requirements.txt
