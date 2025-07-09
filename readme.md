@@ -129,7 +129,3 @@ The dashboard currently tracks the following instruments:
 - PostgreSQL 12+
 - TrueData WebSocket API credentials
 - Libraries listed in requirements.txt
-
-## License
-
-This project is provided for educational purposes. Please ensure you have proper authorization to use the TrueData API before deploying this application.
