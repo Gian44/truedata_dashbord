@@ -144,46 +144,75 @@ def main():
             symbols=SYMBOLS
         )
         st.session_state.processing_active = False
+        st.session_state.connection_active = False
         st.session_state.last_update = 0
         st.session_state.update_counter = 0
         st.session_state.placeholder = st.empty()
 
     # Control Panel in Sidebar
     with st.sidebar:
+        # Connection controls
+        st.markdown("**Connection Controls**")
         col1, col2 = st.columns(2)
         with col1:
-            start_btn = st.button("▶ Start Processing", 
-                                disabled=st.session_state.processing_active)
-        
+            connect_btn = st.button("🔌 Connect",
+                                 disabled=st.session_state.connection_active, 
+                                 use_container_width=True)
         with col2:
+            disconnect_btn = st.button("🚫 Disconnect",
+                                    disabled=not st.session_state.connection_active, 
+                                    use_container_width=True)
+        
+        # Processing controls
+        col3, col4 = st.columns(2)
+        with col3:
+            start_btn = st.button("▶ Start Processing", 
+                                disabled=st.session_state.processing_active or not st.session_state.connection_active,
+                                key="start_btn",
+                                use_container_width=True) 
+        with col4:
             stop_btn = st.button("⏹ Stop Processing", 
-                               disabled=not st.session_state.processing_active)
+                                disabled=not st.session_state.processing_active,
+                                key="stop_btn",
+                                use_container_width=True)
         
         st.divider()
         
-        # Status indicator
+        # Status indicators
+        connection_status = "✅ Connected" if st.session_state.connection_active else "⚠️ Disconnected"
+        st.markdown(f"**Connection Status:** {connection_status}")
+        
         status_color = "green" if st.session_state.processing_active else "gray"
         status_text = "▶ Processing" if st.session_state.processing_active else "⏹ Stopped"
         st.markdown(f"**Processing Status:** <span style='color:{status_color}'>{status_text}</span>",
                    unsafe_allow_html=True)
         
-        # Connection status
-        connection_status = "✅ Connected" if st.session_state.data_feed.is_connected() else "⚠️ Disconnected"
-        st.markdown(f"**Connection Status:** {connection_status}")
-        
-        if st.session_state.data_feed.is_connected():
+        if st.session_state.connection_active:
             st.write(f"Active symbols: {len(st.session_state.data_feed.get_active_symbols())}")
 
     # Handle button actions
+    if connect_btn:
+        if st.session_state.data_feed.connection():
+            st.session_state.connection_active = True
+            st.rerun()
+
+    if disconnect_btn:
+        st.session_state.data_feed.disconnection()
+        st.session_state.connection_active = False
+        st.session_state.processing_active = False
+        st.rerun()
+
     if start_btn:
-        st.session_state.data_feed.start_processing()
-        st.session_state.processing_active = True
-        st.session_state.last_update = 0
-        st.session_state.update_counter = 0
-    
+        if st.session_state.data_feed.start_processing():
+            st.session_state.processing_active = True
+            st.session_state.last_update = 0
+            st.session_state.update_counter = 0
+            st.rerun()  
+
     if stop_btn:
         st.session_state.data_feed.stop_processing()
         st.session_state.processing_active = False
+        st.rerun() 
 
     # Process UI messages
     st.session_state.data_feed.process_messages()
@@ -197,6 +226,10 @@ def main():
     # Main UI update loop
     while True:
         # Update the entire UI inside the placeholder
+
+        if st.session_state.connection_active == False:
+            st.session_state.data_feed.disconnection()
+
         with st.session_state.placeholder.container():
             create_ui(df, st.session_state.update_counter)
 

@@ -17,42 +17,60 @@ class TrueDataFeed:
         self.req_ids = []
         self._last_data = {}
         self._processing_active = False
+        self._connection_active = False
 
-    def connect(self):
-        """Establish connection without starting processing"""
+    def connection(self):
+        """Establish connection to TrueData service"""
+        if self._connection_active:
+            return True
+            
         try:
             self._cleanup_connection()
             self.td_app = TD(self.username, self.password,
                            live_port=8082,
                            historical_api=False)
-            self.req_ids = self.td_app.start_live_data(self.symbols)
-            time.sleep(1)  # Allow connection to establish
-            self._last_data = {
-                req_id: deepcopy(self.td_app.live_data[req_id])
-                for req_id in self.req_ids
-            }
-            self.message_queue.put(("toast", "Connected to feed!", "✅"))
+            self._connection_active = True
+            self.message_queue.put(("toast", "Connected to TrueData service!", "✅"))
+            return True
         except Exception as e:
             self.message_queue.put(("error", f"Connection failed: {str(e)}"))
             self._cleanup_connection()
+            return False
+
+    def disconnection(self):
+        """Disconnect from TrueData service"""
+        if not self._connection_active:
+            return
+            
+        self.stop_processing()
+        self._cleanup_connection()
+        self._connection_active = False
+        self.message_queue.put(("toast", "Disconnected from TrueData service", "🔌"))
 
     def start_processing(self):
         """Enable data processing and storage"""
-        if self.td_app is None:
-            self.connect()
+        if not self._connection_active:
+            self.message_queue.put(("error", "Not connected to TrueData service"))
+            return False
+            
+        self.req_ids = self.td_app.start_live_data(self.symbols)
+        time.sleep(1)  # Allow connection to establish
+        self._last_data = {
+            req_id: deepcopy(self.td_app.live_data[req_id])
+            for req_id in self.req_ids
+        }    
         self._processing_active = True
         self.message_queue.put(("toast", "Data processing started", "▶️"))
+        return True
 
     def stop_processing(self):
         """Disable data processing and storage"""
+        if not self._processing_active:
+            return
+            
         self._processing_active = False
+        self.td_app.stop_live_data(self.req_ids)
         self.message_queue.put(("toast", "Data processing stopped", "⏹️"))
-
-    def disconnect(self):
-        """Fully disconnect from feed"""
-        self._processing_active = False
-        self._cleanup_connection()
-        self.message_queue.put(("toast", "Disconnected from feed", "🔌"))
 
     def _cleanup_connection(self):
         """Internal cleanup method"""
